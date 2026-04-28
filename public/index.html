@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>memevault</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="header">
+      <div class="logo">memo<span class="accent">vault</span></div>
+    </header>
+
+    <div id="loader" class="loader">
+      <div class="spinner"></div>
+      <p>loading memes...</p>
+    </div>
+
+    <div id="card-container">
+      <div id="card-stack"></div>
+    </div>
+
+    <div id="swipe-hint" class="swipe-hint">
+      <span>swipe</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
