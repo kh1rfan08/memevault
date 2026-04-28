@@ -11,24 +11,42 @@
 </head>
 <body>
   <div id="app">
-    <header id="header">
-      <div class="logo">memo<span class="accent">vault</span></div>
+    <header>
+      <div class="logo">meme<span class="accent">vault</span></div>
+      <div class="drop-badge" id="drop-badge"></div>
     </header>
 
     <div id="loader" class="loader">
       <div class="spinner"></div>
-      <p>loading memes...</p>
+      <p>loading drop...</p>
     </div>
 
     <div id="card-container">
       <div id="card-stack"></div>
+      <div id="counter"></div>
     </div>
 
     <div id="swipe-hint" class="swipe-hint">
-      <span>swipe</span>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <span>swipe to browse</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M5 12h14M12 5l7 7-7 7"/>
       </svg>
+    </div>
+
+    <div id="end-screen" class="end-screen hidden">
+      <div class="end-icon">&#10003;</div>
+      <h2>you're all caught up</h2>
+      <p class="end-subtitle">next drop in</p>
+      <div class="countdown" id="countdown"></div>
+      <p class="end-hint">close the app. go outside. touch grass.</p>
+    </div>
+
+    <div id="waiting-screen" class="waiting-screen hidden">
+      <div class="waiting-icon">&#9202;</div>
+      <h2>no memes yet</h2>
+      <p class="end-subtitle">next drop in</p>
+      <div class="countdown" id="countdown-waiting"></div>
+      <p class="end-hint">patience, young memester.</p>
     </div>
   </div>
 
