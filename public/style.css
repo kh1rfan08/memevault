@@ -57,6 +57,12 @@ header {
   color: var(--accent);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .drop-badge {
   font-size: 11px;
   font-weight: 600;
@@ -66,6 +72,25 @@ header {
   border-radius: 20px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
+}
+
+.vault-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.vault-btn:hover, .vault-btn:active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Loader */
@@ -310,3 +335,151 @@ body::before {
 }
 
 #app { position: relative; z-index: 1; }
+
+/* History Vault */
+.vault-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vault-screen.hidden { display: none; }
+
+.vault-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.vault-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.vault-back {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.vault-back:hover { color: var(--accent); }
+
+.vault-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.vault-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.vault-item:hover, .vault-item:active {
+  background: var(--surface);
+}
+
+.vault-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vault-item-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.vault-item-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.vault-item-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.vault-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 14px;
+  gap: 8px;
+  opacity: 0.6;
+}
+
+/* Vault Grid (meme thumbnails) */
+.vault-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+
+.vault-meme {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.vault-meme img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #000;
+}
+
+.vault-meme-info {
+  padding: 8px 10px;
+}
+
+.vault-meme-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vault-meme-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}

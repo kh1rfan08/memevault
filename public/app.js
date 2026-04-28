@@ -9,6 +9,16 @@
   const countdownWaiting = document.getElementById("countdown-waiting");
   const dropBadge = document.getElementById("drop-badge");
 
+  // Vault elements
+  const vaultBtn = document.getElementById("vault-btn");
+  const vaultScreen = document.getElementById("vault-screen");
+  const vaultBack = document.getElementById("vault-back");
+  const vaultList = document.getElementById("vault-list");
+  const vaultDetail = document.getElementById("vault-detail");
+  const vaultDetailBack = document.getElementById("vault-detail-back");
+  const vaultDetailTitle = document.getElementById("vault-detail-title");
+  const vaultGrid = document.getElementById("vault-grid");
+
   let memes = [];
   let currentIndex = 0;
   let nextDropTime = null;
@@ -43,7 +53,6 @@
       if (countdownWaiting) countdownWaiting.textContent = formatted;
       if (remaining <= 0) {
         clearInterval(countdownInterval);
-        // Auto-refresh when drop time hits
         setTimeout(() => location.reload(), 2000);
       }
     }, 1000);
@@ -188,6 +197,88 @@
         renderCards();
       }, 350);
     }
+  });
+
+  // --- History Vault ---
+  function formatDropDate(isoStr) {
+    const d = new Date(isoStr);
+    const opts = { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" };
+    return d.toLocaleDateString("en-US", opts);
+  }
+
+  function formatDropId(id) {
+    // "2026-04-28-12" → "Apr 28 · noon drop"
+    const parts = id.split("-");
+    if (parts.length < 4) return id;
+    const d = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T00:00:00Z`);
+    const month = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const hour = parseInt(parts[3]);
+    const label = hour === 12 ? "noon drop" : hour === 18 ? "evening drop" : `${hour}:00 drop`;
+    return `${month} · ${label}`;
+  }
+
+  async function openVault() {
+    vaultScreen.classList.remove("hidden");
+    vaultList.innerHTML = '<div class="vault-empty"><div class="spinner"></div><p>loading...</p></div>';
+
+    try {
+      const res = await fetch("/api/history");
+      const history = await res.json();
+
+      if (history.length === 0) {
+        vaultList.innerHTML = '<div class="vault-empty"><p>no drops yet</p></div>';
+        return;
+      }
+
+      vaultList.innerHTML = "";
+      history.forEach((drop) => {
+        const item = document.createElement("div");
+        item.className = "vault-item";
+        item.innerHTML = `
+          <div class="vault-item-left">
+            <div class="vault-item-id">${formatDropId(drop.id)}</div>
+            <div class="vault-item-meta">${formatDropDate(drop.droppedAt)}</div>
+          </div>
+          <div class="vault-item-count">${drop.memeCount} memes</div>
+        `;
+        item.addEventListener("click", () => openDropDetail(drop));
+        vaultList.appendChild(item);
+      });
+    } catch (e) {
+      vaultList.innerHTML = '<div class="vault-empty"><p>failed to load history</p></div>';
+    }
+  }
+
+  function openDropDetail(drop) {
+    vaultScreen.classList.add("hidden");
+    vaultDetail.classList.remove("hidden");
+    vaultDetailTitle.textContent = formatDropId(drop.id);
+    vaultGrid.innerHTML = "";
+
+    if (!drop.memes || drop.memes.length === 0) {
+      vaultGrid.innerHTML = '<div class="vault-empty"><p>no memes in this drop</p></div>';
+      return;
+    }
+
+    drop.memes.forEach((meme) => {
+      const el = document.createElement("div");
+      el.className = "vault-meme";
+      el.innerHTML = `
+        <img src="${meme.url}" alt="" loading="lazy" />
+        <div class="vault-meme-info">
+          <div class="vault-meme-title">${escapeHtml(meme.title)}</div>
+          <div class="vault-meme-sub">${meme.subreddit} · ${formatScore(meme.score)}</div>
+        </div>
+      `;
+      vaultGrid.appendChild(el);
+    });
+  }
+
+  vaultBtn.addEventListener("click", openVault);
+  vaultBack.addEventListener("click", () => vaultScreen.classList.add("hidden"));
+  vaultDetailBack.addEventListener("click", () => {
+    vaultDetail.classList.add("hidden");
+    openVault();
   });
 
   // Init

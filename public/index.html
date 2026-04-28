@@ -13,7 +13,14 @@
   <div id="app">
     <header>
       <div class="logo">meme<span class="accent">vault</span></div>
-      <div class="drop-badge" id="drop-badge"></div>
+      <div class="header-right">
+        <div class="drop-badge" id="drop-badge"></div>
+        <button class="vault-btn" id="vault-btn" title="History Vault">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <div id="loader" class="loader">
@@ -47,6 +54,34 @@
       <p class="end-subtitle">next drop in</p>
       <div class="countdown" id="countdown-waiting"></div>
       <p class="end-hint">patience, young memester.</p>
+    </div>
+
+    <!-- History Vault -->
+    <div id="vault-screen" class="vault-screen hidden">
+      <div class="vault-header">
+        <button class="vault-back" id="vault-back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>history vault</h2>
+        <div style="width:20px"></div>
+      </div>
+      <div class="vault-list" id="vault-list"></div>
+    </div>
+
+    <!-- History Drop Detail -->
+    <div id="vault-detail" class="vault-screen hidden">
+      <div class="vault-header">
+        <button class="vault-back" id="vault-detail-back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2 id="vault-detail-title">drop</h2>
+        <div style="width:20px"></div>
+      </div>
+      <div class="vault-grid" id="vault-grid"></div>
     </div>
   </div>
 
