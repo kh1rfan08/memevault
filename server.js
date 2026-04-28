@@ -6,6 +6,7 @@ const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BUILD_VERSION = Date.now().toString();
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "drops.json");
 const HISTORY_FILE = path.join(DATA_DIR, "history.json");
@@ -16,6 +17,47 @@ const SUBREDDITS = ["memes", "dankmemes", "me_irl", "wholesomememes", "shitposti
 
 // Drop schedule: noon and 6pm UTC
 const DROP_HOURS = [12, 18];
+
+// Cache busting: serve sw.js with build version injected + no-cache
+app.get("/sw.js", (req, res) => {
+  const swContent = `
+const CACHE_NAME = 'memevault-v${BUILD_VERSION}';
+const ASSETS = [];
+
+self.addEventListener('install', (e) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});
+`;
+  res.set({
+    "Content-Type": "application/javascript",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+  });
+  res.send(swContent);
+});
+
+// No-cache headers for HTML
+app.get("/", (req, res, next) => {
+  res.set({
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+  });
+  next();
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 

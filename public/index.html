@@ -46,6 +46,7 @@
       <p class="end-subtitle">next drop in</p>
       <div class="countdown" id="countdown"></div>
       <p class="end-hint">close the app. go outside. touch grass.</p>
+      <button class="end-vault-link" id="end-vault-btn">or browse old dumps</button>
     </div>
 
     <div id="waiting-screen" class="waiting-screen hidden">
@@ -86,5 +87,15 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        setInterval(() => reg.update(), 60000);
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+  </script>
 </body>
 </html>

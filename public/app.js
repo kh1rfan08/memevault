@@ -275,6 +275,7 @@
   }
 
   vaultBtn.addEventListener("click", openVault);
+  document.getElementById("end-vault-btn").addEventListener("click", openVault);
   vaultBack.addEventListener("click", () => vaultScreen.classList.add("hidden"));
   vaultDetailBack.addEventListener("click", () => {
     vaultDetail.classList.add("hidden");
