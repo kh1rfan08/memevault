@@ -211,6 +211,19 @@ async function generateDrop() {
     return true;
   });
 
+  // Exclude memes that appeared in previous drops
+  const history = loadHistory();
+  const pastMemeIds = new Set();
+  for (const drop of history) {
+    if (drop.memes) {
+      for (const m of drop.memes) {
+        pastMemeIds.add(m.id);
+      }
+    }
+  }
+  all = all.filter((m) => !pastMemeIds.has(m.id));
+  console.log(`  After excluding past drops: ${all.length} unique memes remaining`);
+
   // Sort by score descending, take top memes
   all.sort((a, b) => b.score - a.score);
   const memes = all.slice(0, MEMES_PER_DROP);
