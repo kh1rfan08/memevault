@@ -13,7 +13,18 @@ const HISTORY_FILE = path.join(DATA_DIR, "history.json");
 const LOG_FILE = path.join(DATA_DIR, "errors.log");
 const MEMES_PER_DROP = 20;
 
-const SUBREDDITS = ["memes", "dankmemes", "me_irl", "wholesomememes", "shitposting"];
+// High-signal humor subreddits (mix of edgy, absurd, and dank)
+const SUBREDDITS = [
+  "shitposting",
+  "okbuddyretard",
+  "comedyheaven",
+  "196",
+  "whenthe",
+  "blursedimages",
+  "surrealmemes",
+  "moldymemes",
+  "dankmemes",
+];
 
 // Drop schedule: noon and 6pm UTC
 const DROP_HOURS = [12, 18];
@@ -224,14 +235,47 @@ async function generateDrop() {
   all = all.filter((m) => !pastMemeIds.has(m.id));
   console.log(`  After excluding past drops: ${all.length} unique memes remaining`);
 
-  // Sort by score descending, take top memes
-  all.sort((a, b) => b.score - a.score);
-  const memes = all.slice(0, MEMES_PER_DROP);
+  // Content filter: remove tweet/text screenshots and low-effort reposts
+  const FILTER_TITLE_RE = /\b(tweet|twitter|snapchat|text message|group chat|facebook|instagram post)\b/i;
+  all = all.filter((m) => !FILTER_TITLE_RE.test(m.title));
+  console.log(`  After content filter: ${all.length} memes`);
 
-  // Shuffle for variety
-  for (let i = memes.length - 1; i > 0; i--) {
+  // Threshold + random sampling (instead of top-N by upvotes)
+  const MIN_SCORE = 500;
+  let pool = all.filter((m) => m.score >= MIN_SCORE);
+  // If not enough qualify, relax threshold progressively
+  if (pool.length < MEMES_PER_DROP) {
+    pool = all.filter((m) => m.score >= 200);
+  }
+  if (pool.length < MEMES_PER_DROP) {
+    pool = all; // use everything we have
+  }
+  console.log(`  Qualified pool: ${pool.length} memes (threshold applied)`);
+
+  // Shuffle the pool randomly
+  for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [memes[i], memes[j]] = [memes[j], memes[i]];
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  // Pick with subreddit diversity — max 4 per subreddit
+  const MAX_PER_SUB = 4;
+  const subCounts = {};
+  const memes = [];
+  for (const m of pool) {
+    if (memes.length >= MEMES_PER_DROP) break;
+    const count = subCounts[m.subreddit] || 0;
+    if (count >= MAX_PER_SUB) continue;
+    memes.push(m);
+    subCounts[m.subreddit] = count + 1;
+  }
+  // If we didn't fill up (unlikely), grab remaining without limit
+  if (memes.length < MEMES_PER_DROP) {
+    const picked = new Set(memes.map((m) => m.id));
+    for (const m of pool) {
+      if (memes.length >= MEMES_PER_DROP) break;
+      if (!picked.has(m.id)) memes.push(m);
+    }
   }
 
   const drop = {
