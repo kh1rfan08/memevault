@@ -80,9 +80,35 @@
           </svg>
         </button>
         <h2 id="vault-detail-title">drop</h2>
-        <div style="width:20px"></div>
+        <button class="swipe-mode-btn" id="swipe-mode-btn" title="Swipe mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>
+          </svg>
+        </button>
       </div>
       <div class="vault-grid" id="vault-grid"></div>
+    </div>
+
+    <!-- Swipe Mode (replay drop) -->
+    <div id="swipe-mode" class="swipe-mode-screen hidden">
+      <div class="swipe-mode-header">
+        <button class="vault-back" id="swipe-mode-back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2 id="swipe-mode-title">swipe mode</h2>
+        <div style="width:20px"></div>
+      </div>
+      <div class="swipe-mode-body">
+        <div id="swipe-mode-stack" class="swipe-mode-stack"></div>
+        <div id="swipe-mode-counter" class="swipe-mode-counter"></div>
+      </div>
+      <div id="swipe-mode-end" class="swipe-mode-end hidden">
+        <div class="end-icon">&#10003;</div>
+        <h2>that's all of them</h2>
+        <button class="end-vault-link" id="swipe-mode-done">back to drop</button>
+      </div>
     </div>
   </div>
 

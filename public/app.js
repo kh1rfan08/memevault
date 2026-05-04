@@ -252,15 +252,19 @@
   function openDropDetail(drop) {
     vaultScreen.classList.add("hidden");
     vaultDetail.classList.remove("hidden");
-    vaultDetailTitle.textContent = formatDropId(drop.id);
+    const title = formatDropId(drop.id);
+    vaultDetailTitle.textContent = title;
     vaultGrid.innerHTML = "";
+
+    currentDropMemes = drop.memes || [];
+    currentDropTitle = title;
 
     if (!drop.memes || drop.memes.length === 0) {
       vaultGrid.innerHTML = '<div class="vault-empty"><p>no memes in this drop</p></div>';
       return;
     }
 
-    drop.memes.forEach((meme) => {
+    drop.memes.forEach((meme, idx) => {
       const el = document.createElement("div");
       el.className = "vault-meme";
       el.innerHTML = `
@@ -270,9 +274,167 @@
           <div class="vault-meme-sub">${meme.subreddit} · ${formatScore(meme.score)}</div>
         </div>
       `;
+      el.addEventListener("click", () => {
+        swipeIndex = idx;
+        swipeMemes = currentDropMemes;
+        swipeModeTitle.textContent = currentDropTitle;
+        swipeModeEnd.classList.add("hidden");
+        swipeModeScreen.classList.remove("hidden");
+        renderSwipeCards();
+      });
       vaultGrid.appendChild(el);
     });
   }
+
+  // --- Swipe Mode ---
+  const swipeModeScreen = document.getElementById("swipe-mode");
+  const swipeModeStack = document.getElementById("swipe-mode-stack");
+  const swipeModeCounter = document.getElementById("swipe-mode-counter");
+  const swipeModeEnd = document.getElementById("swipe-mode-end");
+  const swipeModeTitle = document.getElementById("swipe-mode-title");
+  const swipeModeBtn = document.getElementById("swipe-mode-btn");
+  const swipeModeBack = document.getElementById("swipe-mode-back");
+  const swipeModeDone = document.getElementById("swipe-mode-done");
+
+  let swipeMemes = [];
+  let swipeIndex = 0;
+  let swipeKeyHandler = null;
+
+  function openSwipeMode(dropMemes, title) {
+    swipeMemes = dropMemes;
+    swipeIndex = 0;
+    swipeModeTitle.textContent = title || "swipe mode";
+    swipeModeEnd.classList.add("hidden");
+    swipeModeScreen.classList.remove("hidden");
+    renderSwipeCards();
+
+    // Keyboard nav for swipe mode
+    if (swipeKeyHandler) document.removeEventListener("keydown", swipeKeyHandler);
+    swipeKeyHandler = (e) => {
+      if (swipeModeScreen.classList.contains("hidden")) return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        if (swipeIndex >= swipeMemes.length) return;
+        const topCard = swipeModeStack.querySelector('.meme-card[data-index="0"]');
+        if (!topCard) return;
+        const dir = e.key === "ArrowRight" ? 1 : -1;
+        topCard.classList.add("fly-out");
+        topCard.style.transform = `translateX(${dir * window.innerWidth * 1.5}px) rotate(${dir * 20}deg)`;
+        topCard.style.opacity = "0";
+        setTimeout(() => {
+          swipeIndex++;
+          renderSwipeCards();
+        }, 350);
+      }
+    };
+    document.addEventListener("keydown", swipeKeyHandler);
+  }
+
+  function renderSwipeCards() {
+    swipeModeStack.innerHTML = "";
+
+    if (swipeIndex >= swipeMemes.length) {
+      swipeModeCounter.textContent = "";
+      swipeModeEnd.classList.remove("hidden");
+      return;
+    }
+
+    swipeModeCounter.textContent = `${swipeIndex + 1} / ${swipeMemes.length}`;
+
+    const visible = swipeMemes.slice(swipeIndex, swipeIndex + 3);
+    visible.forEach((meme, i) => {
+      const card = document.createElement("div");
+      card.className = "meme-card";
+      card.dataset.index = i;
+      card.innerHTML = `
+        <div class="card-image-wrap">
+          <img src="${meme.url}" alt="" loading="${i === 0 ? "eager" : "lazy"}" draggable="false" />
+        </div>
+        <div class="card-info">
+          <div class="card-title">${escapeHtml(meme.title)}</div>
+          <div class="card-meta">
+            <span>${meme.subreddit}</span>
+            <span class="score">${formatScore(meme.score)}</span>
+          </div>
+        </div>
+      `;
+      swipeModeStack.appendChild(card);
+
+      if (i === 0) setupSwipeMode(card);
+    });
+  }
+
+  function setupSwipeMode(card) {
+    let startX = 0;
+    let cX = 0;
+    let dragging = false;
+
+    function onStart(e) {
+      dragging = true;
+      startX = e.touches ? e.touches[0].clientX : e.clientX;
+      card.classList.add("swiping");
+    }
+
+    function onMove(e) {
+      if (!dragging) return;
+      cX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+      const rotation = cX * 0.04;
+      const opacity = 1 - Math.min(Math.abs(cX) / 400, 0.3);
+      card.style.transform = `translateX(${cX}px) rotate(${rotation}deg)`;
+      card.style.opacity = opacity;
+    }
+
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove("swiping");
+
+      const threshold = window.innerWidth * 0.2;
+
+      if (Math.abs(cX) > threshold) {
+        const direction = cX > 0 ? 1 : -1;
+        card.classList.add("fly-out");
+        card.style.transform = `translateX(${direction * window.innerWidth * 1.5}px) rotate(${direction * 20}deg)`;
+        card.style.opacity = "0";
+        setTimeout(() => {
+          swipeIndex++;
+          renderSwipeCards();
+        }, 350);
+      } else {
+        card.style.transform = "";
+        card.style.opacity = "";
+      }
+      cX = 0;
+    }
+
+    card.addEventListener("touchstart", onStart, { passive: true });
+    card.addEventListener("touchmove", onMove, { passive: true });
+    card.addEventListener("touchend", onEnd);
+    card.addEventListener("mousedown", onStart);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onEnd);
+  }
+
+  function closeSwipeMode() {
+    swipeModeScreen.classList.add("hidden");
+    swipeModeStack.innerHTML = "";
+    swipeModeCounter.textContent = "";
+    if (swipeKeyHandler) {
+      document.removeEventListener("keydown", swipeKeyHandler);
+      swipeKeyHandler = null;
+    }
+  }
+
+  let currentDropMemes = null;
+  let currentDropTitle = null;
+
+  swipeModeBtn.addEventListener("click", () => {
+    if (currentDropMemes && currentDropMemes.length > 0) {
+      openSwipeMode(currentDropMemes, currentDropTitle);
+    }
+  });
+
+  swipeModeBack.addEventListener("click", closeSwipeMode);
+  swipeModeDone.addEventListener("click", closeSwipeMode);
 
   vaultBtn.addEventListener("click", openVault);
   document.getElementById("end-vault-btn").addEventListener("click", openVault);
