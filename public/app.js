@@ -27,7 +27,7 @@
 
   async function fetchDrop() {
     try {
-      const res = await fetch("/api/drop");
+      const res = await fetch("/api/drop?t=" + Date.now());
       return await res.json();
     } catch (e) {
       console.error("fetch failed", e);
@@ -459,8 +459,8 @@
 
     dropBadge.textContent = `${memes.length} memes`;
 
-    // Check localStorage for viewed state
-    const viewedKey = `viewed-${drop.dropId}`;
+    // Check localStorage for viewed state (use droppedAt to detect regenerated drops)
+    const viewedKey = `viewed-${drop.dropId}-${drop.droppedAt}`;
     const savedIndex = localStorage.getItem(viewedKey);
     if (savedIndex !== null) {
       currentIndex = parseInt(savedIndex, 10);

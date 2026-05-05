@@ -305,6 +305,7 @@ cron.schedule("0 12,18 * * *", () => {
 
 // API: get current drop
 app.get("/api/drop", (req, res) => {
+  res.set({ "Cache-Control": "no-cache, no-store, must-revalidate" });
   if (!currentDrop || currentDrop.memes.length === 0) {
     return res.json({
       memes: [],
