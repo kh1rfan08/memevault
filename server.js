@@ -13,17 +13,18 @@ const HISTORY_FILE = path.join(DATA_DIR, "history.json");
 const LOG_FILE = path.join(DATA_DIR, "errors.log");
 const MEMES_PER_DROP = 20;
 
-// High-signal humor subreddits (mix of edgy, absurd, and dank)
+// High-signal humor subreddits (visual memes, absurd humor, creative content)
 const SUBREDDITS = [
-  "shitposting",
-  "okbuddyretard",
-  "comedyheaven",
-  "196",
-  "whenthe",
-  "blursedimages",
-  "surrealmemes",
-  "moldymemes",
+  "memes",
   "dankmemes",
+  "comedyheaven",
+  "blursedimages",
+  "me_irl",
+  "whenthe",
+  "antimeme",
+  "surrealmemes",
+  "programmerhumor",
+  "memeeconomy",
 ];
 
 // Drop schedule: noon and 6pm UTC
@@ -235,9 +236,10 @@ async function generateDrop() {
   all = all.filter((m) => !pastMemeIds.has(m.id));
   console.log(`  After excluding past drops: ${all.length} unique memes remaining`);
 
-  // Content filter: remove tweet/text screenshots and low-effort reposts
-  const FILTER_TITLE_RE = /\b(tweet|twitter|snapchat|text message|group chat|facebook|instagram post)\b/i;
-  all = all.filter((m) => !FILTER_TITLE_RE.test(m.title));
+  // Content filter: remove text screenshots, social media reposts, and edgy/offensive content
+  const FILTER_TITLE_RE = /\b(tweet|twitter|snapchat|text message|group chat|facebook|instagram post|tiktok|discord|ratio|cope|seethe|slur|n.word|retard|kill yourself|kys)\b/i;
+  const FILTER_URL_RE = /\.(gif)$/i; // skip gifs (often low quality/loading issues)
+  all = all.filter((m) => !FILTER_TITLE_RE.test(m.title) && !FILTER_URL_RE.test(m.url));
   console.log(`  After content filter: ${all.length} memes`);
 
   // Threshold + random sampling (instead of top-N by upvotes)
