@@ -9,10 +9,10 @@ services:
       - memevault-data:/app/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ifunny.rule=Host(`ifunny.oddlayer.tech`)"
-      - "traefik.http.routers.ifunny.entrypoints=websecure"
-      - "traefik.http.routers.ifunny.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.ifunny.loadbalancer.server.port=3000"
+      - "traefik.http.routers.meme.rule=Host(`meme.oddlayer.tech`)"
+      - "traefik.http.routers.meme.entrypoints=websecure"
+      - "traefik.http.routers.meme.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.meme.loadbalancer.server.port=3000"
     networks:
       - n8n_default
 
