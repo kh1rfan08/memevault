@@ -10,6 +10,7 @@ const BUILD_VERSION = Date.now().toString();
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "drops.json");
 const HISTORY_FILE = path.join(DATA_DIR, "history.json");
+const VOTES_FILE = path.join(DATA_DIR, "votes.json");
 const LOG_FILE = path.join(DATA_DIR, "errors.log");
 const MEMES_PER_DROP = 20;
 
@@ -71,6 +72,7 @@ app.get("/", (req, res, next) => {
   next();
 });
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Ensure data directory exists
@@ -119,6 +121,62 @@ function saveToHistory(drop) {
   } catch (e) {
     logError("saveToHistory", e);
   }
+}
+
+// --- Vote management ---
+function loadVotes() {
+  try {
+    if (fs.existsSync(VOTES_FILE)) {
+      return JSON.parse(fs.readFileSync(VOTES_FILE, "utf8"));
+    }
+  } catch (e) {
+    logError("loadVotes", e);
+  }
+  return {};
+}
+
+function saveVote(memeId, payload) {
+  try {
+    const votes = loadVotes();
+    if (payload === null) {
+      delete votes[memeId];
+    } else {
+      votes[memeId] = payload;
+    }
+    fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
+  } catch (e) {
+    logError("saveVote", e);
+  }
+}
+
+function computeSubStats(votes) {
+  const stats = {};
+  for (const v of Object.values(votes)) {
+    const sub = v.subreddit;
+    if (!sub) continue;
+    if (!stats[sub]) stats[sub] = { up: 0, down: 0 };
+    if (v.vote === "up") stats[sub].up++;
+    else if (v.vote === "down") stats[sub].down++;
+  }
+  return stats;
+}
+
+// Weight subreddits by historical vote ratio. New subs (or low data) stay at 1.0.
+// Strong likes nudge weight up to 2.0, dislikes down to 0.4.
+function getSubredditWeights() {
+  const stats = computeSubStats(loadVotes());
+  const weights = {};
+  for (const sub of SUBREDDITS) {
+    const s = stats["r/" + sub] || { up: 0, down: 0 };
+    const total = s.up + s.down;
+    if (total < 5) {
+      weights[sub] = 1.0;
+    } else {
+      const ratio = s.up / total;
+      weights[sub] = Math.max(0.4, Math.min(2.0, 0.4 + ratio * 1.6));
+    }
+  }
+  return weights;
 }
 
 // Load persisted drops
@@ -204,12 +262,16 @@ function getDropId() {
 
 async function generateDrop() {
   console.log("Generating new meme drop...");
-  const results = await Promise.all(SUBREDDITS.map((sub) => fetchMemeApi(sub, 50)));
+  const weights = getSubredditWeights();
+  const fetchCounts = SUBREDDITS.map((sub) => Math.max(10, Math.round(50 * weights[sub])));
+  const results = await Promise.all(
+    SUBREDDITS.map((sub, i) => fetchMemeApi(sub, fetchCounts[i]))
+  );
   let all = results.flat();
 
   // Log per-subreddit results for debugging
   SUBREDDITS.forEach((sub, i) => {
-    console.log(`  r/${sub}: ${results[i].length} memes`);
+    console.log(`  r/${sub}: ${results[i].length} memes (weight ${weights[sub].toFixed(2)}, fetched ${fetchCounts[i]})`);
     if (results[i].length === 0) {
       logError("generateDrop", `r/${sub} returned 0 memes`);
     }
@@ -335,6 +397,65 @@ app.get("/api/history/:dropId", (req, res) => {
   const drop = history.find((d) => d.id === req.params.dropId);
   if (!drop) return res.status(404).json({ error: "Drop not found" });
   res.json(drop);
+});
+
+// API: cast or clear a vote on a meme
+app.post("/api/vote", (req, res) => {
+  const { memeId, vote, dropId, title, subreddit, url, score } = req.body || {};
+  if (!memeId) return res.status(400).json({ error: "memeId required" });
+  if (vote !== null && vote !== "up" && vote !== "down") {
+    return res.status(400).json({ error: "vote must be 'up', 'down', or null" });
+  }
+  if (vote === null) {
+    saveVote(memeId, null);
+  } else {
+    saveVote(memeId, {
+      vote,
+      dropId: dropId || null,
+      title: title || "",
+      subreddit: subreddit || "",
+      url: url || "",
+      score: typeof score === "number" ? score : 0,
+      votedAt: new Date().toISOString(),
+    });
+  }
+  res.json({ ok: true });
+});
+
+// API: get all votes (so client can hydrate UI state)
+app.get("/api/votes", (req, res) => {
+  res.set({ "Cache-Control": "no-cache, no-store, must-revalidate" });
+  res.json(loadVotes());
+});
+
+// API: aggregated stats
+app.get("/api/stats", (req, res) => {
+  res.set({ "Cache-Control": "no-cache, no-store, must-revalidate" });
+  const votes = loadVotes();
+  let totalUp = 0, totalDown = 0;
+  const subStats = computeSubStats(votes);
+  for (const s of Object.values(subStats)) {
+    totalUp += s.up;
+    totalDown += s.down;
+  }
+  const subreddits = Object.entries(subStats)
+    .map(([sub, s]) => {
+      const total = s.up + s.down;
+      return {
+        subreddit: sub,
+        up: s.up,
+        down: s.down,
+        total,
+        ratio: total > 0 ? s.up / total : 0,
+      };
+    })
+    .sort((a, b) => b.ratio - a.ratio || b.total - a.total);
+  res.json({
+    totalUp,
+    totalDown,
+    totalVotes: totalUp + totalDown,
+    subreddits,
+  });
 });
 
 // API: get error log (last 50 lines)

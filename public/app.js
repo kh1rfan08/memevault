@@ -19,11 +19,22 @@
   const vaultDetailTitle = document.getElementById("vault-detail-title");
   const vaultGrid = document.getElementById("vault-grid");
 
+  // Vote / stats elements
+  const voteBar = document.getElementById("vote-bar");
+  const voteUpBtn = document.getElementById("vote-up");
+  const voteDownBtn = document.getElementById("vote-down");
+  const statsBtn = document.getElementById("stats-btn");
+  const statsScreen = document.getElementById("stats-screen");
+  const statsBack = document.getElementById("stats-back");
+  const statsBody = document.getElementById("stats-body");
+
   let memes = [];
   let currentIndex = 0;
   let nextDropTime = null;
   let countdownInterval = null;
   let hintDismissed = false;
+  let currentDropId = null;
+  let voteState = {}; // memeId -> 'up' | 'down'
 
   async function fetchDrop() {
     try {
@@ -81,6 +92,7 @@
     stack.innerHTML = "";
     counter.textContent = "";
     hint.classList.add("hidden");
+    voteBar.classList.add("hidden");
     endScreen.classList.remove("hidden");
     startCountdown();
   }
@@ -89,8 +101,54 @@
     stack.innerHTML = "";
     counter.textContent = "";
     hint.classList.add("hidden");
+    voteBar.classList.add("hidden");
     waitingScreen.classList.remove("hidden");
     startCountdown();
+  }
+
+  function updateVoteButtons() {
+    const meme = memes[currentIndex];
+    if (!meme) {
+      voteBar.classList.add("hidden");
+      return;
+    }
+    voteBar.classList.remove("hidden");
+    const v = voteState[meme.id];
+    voteUpBtn.classList.toggle("active", v === "up");
+    voteDownBtn.classList.toggle("active", v === "down");
+  }
+
+  async function castVote(memeId, newVote) {
+    const meme = memes.find((m) => m.id === memeId);
+    if (!meme) return;
+
+    // Toggle: tapping the same vote clears it
+    let payload;
+    if (voteState[memeId] === newVote) {
+      delete voteState[memeId];
+      payload = { memeId, vote: null };
+    } else {
+      voteState[memeId] = newVote;
+      payload = {
+        memeId,
+        vote: newVote,
+        dropId: currentDropId,
+        title: meme.title,
+        subreddit: meme.subreddit,
+        url: meme.url,
+        score: meme.score,
+      };
+    }
+    updateVoteButtons();
+    try {
+      await fetch("/api/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.error("vote failed", e);
+    }
   }
 
   function renderCards() {
@@ -102,6 +160,7 @@
     }
 
     updateCounter();
+    updateVoteButtons();
 
     const visible = memes.slice(currentIndex, currentIndex + 3);
     visible.forEach((meme, i) => {
@@ -159,14 +218,27 @@
       const threshold = window.innerWidth * 0.2;
 
       if (Math.abs(currentX) > threshold) {
-        const direction = currentX > 0 ? 1 : -1;
-        card.classList.add("fly-out");
-        card.style.transform = `translateX(${direction * window.innerWidth * 1.5}px) rotate(${direction * 20}deg)`;
-        card.style.opacity = "0";
-        setTimeout(() => {
-          currentIndex++;
-          renderCards();
-        }, 350);
+        if (currentX > 0) {
+          // Swipe right → next: card flies off right
+          card.classList.add("fly-out");
+          card.style.transform = `translateX(${window.innerWidth * 1.5}px) rotate(20deg)`;
+          card.style.opacity = "0";
+          setTimeout(() => {
+            currentIndex++;
+            renderCards();
+          }, 350);
+        } else if (currentIndex > 0) {
+          // Swipe left → previous: snap back, then re-render at prev index
+          card.style.transform = "";
+          card.style.opacity = "";
+          setTimeout(() => {
+            currentIndex--;
+            renderCards();
+          }, 100);
+        } else {
+          card.style.transform = "";
+          card.style.opacity = "";
+        }
       } else {
         card.style.transform = "";
         card.style.opacity = "";
@@ -182,20 +254,30 @@
     window.addEventListener("mouseup", onEnd);
   }
 
-  // Keyboard navigation
+  // Keyboard navigation: → next, ← previous
   document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    // Don't hijack keys when overlays are open
+    if (!vaultScreen.classList.contains("hidden")) return;
+    if (!vaultDetail.classList.contains("hidden")) return;
+    if (!statsScreen.classList.contains("hidden")) return;
+    if (!swipeModeScreen.classList.contains("hidden")) return;
+
+    if (e.key === "ArrowRight") {
       if (currentIndex >= memes.length) return;
       const topCard = stack.querySelector('.meme-card[data-index="0"]');
       if (!topCard) return;
-      const dir = e.key === "ArrowRight" ? 1 : -1;
       topCard.classList.add("fly-out");
-      topCard.style.transform = `translateX(${dir * window.innerWidth * 1.5}px) rotate(${dir * 20}deg)`;
+      topCard.style.transform = `translateX(${window.innerWidth * 1.5}px) rotate(20deg)`;
       topCard.style.opacity = "0";
       setTimeout(() => {
         currentIndex++;
         renderCards();
       }, 350);
+    } else {
+      if (currentIndex <= 0) return;
+      currentIndex--;
+      renderCards();
     }
   });
 
@@ -444,13 +526,80 @@
     openVault();
   });
 
+  // Vote buttons
+  voteUpBtn.addEventListener("click", () => {
+    const meme = memes[currentIndex];
+    if (meme) castVote(meme.id, "up");
+  });
+  voteDownBtn.addEventListener("click", () => {
+    const meme = memes[currentIndex];
+    if (meme) castVote(meme.id, "down");
+  });
+
+  // Stats screen
+  async function openStats() {
+    statsScreen.classList.remove("hidden");
+    statsBody.innerHTML = '<div class="vault-empty"><div class="spinner"></div><p>loading...</p></div>';
+    try {
+      const res = await fetch("/api/stats?t=" + Date.now());
+      const data = await res.json();
+      if (data.totalVotes === 0) {
+        statsBody.innerHTML = '<div class="stats-empty"><p>no votes yet</p><p class="stats-empty-hint">tap thumbs up or down on memes to start training the algorithm</p></div>';
+        return;
+      }
+      const upPct = data.totalVotes > 0 ? Math.round((data.totalUp / data.totalVotes) * 100) : 0;
+      let html = `
+        <div class="stats-summary">
+          <div class="stats-stat"><div class="stats-num">${data.totalUp}</div><div class="stats-label">liked</div></div>
+          <div class="stats-stat stats-stat-mid"><div class="stats-num">${upPct}%</div><div class="stats-label">like rate</div></div>
+          <div class="stats-stat"><div class="stats-num">${data.totalDown}</div><div class="stats-label">passed</div></div>
+        </div>
+        <div class="stats-section-title">by subreddit</div>
+        <div class="stats-list">
+      `;
+      data.subreddits.forEach((s) => {
+        const pct = Math.round(s.ratio * 100);
+        html += `
+          <div class="stats-row">
+            <div class="stats-row-top">
+              <div class="stats-sub">${s.subreddit}</div>
+              <div class="stats-pct">${pct}%</div>
+            </div>
+            <div class="stats-bar"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
+            <div class="stats-counts">${s.up} liked · ${s.down} passed</div>
+          </div>
+        `;
+      });
+      html += "</div>";
+      statsBody.innerHTML = html;
+    } catch (e) {
+      statsBody.innerHTML = '<div class="vault-empty"><p>failed to load stats</p></div>';
+    }
+  }
+  statsBtn.addEventListener("click", openStats);
+  statsBack.addEventListener("click", () => statsScreen.classList.add("hidden"));
+
+  async function fetchVotes() {
+    try {
+      const res = await fetch("/api/votes?t=" + Date.now());
+      const data = await res.json();
+      voteState = {};
+      for (const [id, v] of Object.entries(data)) {
+        voteState[id] = v.vote;
+      }
+    } catch (e) {
+      console.error("fetch votes failed", e);
+    }
+  }
+
   // Init
   async function init() {
-    const drop = await fetchDrop();
+    const [drop] = await Promise.all([fetchDrop(), fetchVotes()]);
     loader.classList.add("hidden");
 
     nextDropTime = drop.nextDrop;
     memes = drop.memes || [];
+    currentDropId = drop.dropId || null;
 
     if (memes.length === 0) {
       showWaitingScreen();
