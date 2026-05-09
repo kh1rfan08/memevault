@@ -649,8 +649,10 @@ body::before {
   background: rgba(59, 214, 113, 0.12);
 }
 
-.vote-down:hover { color: #ff3a5c; border-color: rgba(255, 58, 92, 0.5); }
-.vote-up:hover { color: #3bd671; border-color: rgba(59, 214, 113, 0.5); }
+@media (hover: hover) {
+  .vote-down:hover { color: #ff3a5c; border-color: rgba(255, 58, 92, 0.5); }
+  .vote-up:hover { color: #3bd671; border-color: rgba(59, 214, 113, 0.5); }
+}
 
 /* Stats Screen */
 .stats-body {

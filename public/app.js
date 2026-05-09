@@ -539,10 +539,12 @@
   voteUpBtn.addEventListener("click", () => {
     const meme = memes[currentIndex];
     if (meme) castVote(meme.id, "up");
+    voteUpBtn.blur();
   });
   voteDownBtn.addEventListener("click", () => {
     const meme = memes[currentIndex];
     if (meme) castVote(meme.id, "down");
+    voteDownBtn.blur();
   });
 
   // Stats screen
