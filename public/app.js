@@ -118,6 +118,11 @@
     voteDownBtn.classList.toggle("active", v === "down");
   }
 
+  function clearVoteButtons() {
+    voteUpBtn.classList.remove("active");
+    voteDownBtn.classList.remove("active");
+  }
+
   async function castVote(memeId, newVote) {
     const meme = memes.find((m) => m.id === memeId);
     if (!meme) return;
@@ -218,17 +223,19 @@
       const threshold = window.innerWidth * 0.2;
 
       if (Math.abs(currentX) > threshold) {
-        if (currentX > 0) {
-          // Swipe right → next: card flies off right
+        if (currentX < 0) {
+          // Swipe left → next: card flies off left
+          clearVoteButtons();
           card.classList.add("fly-out");
-          card.style.transform = `translateX(${window.innerWidth * 1.5}px) rotate(20deg)`;
+          card.style.transform = `translateX(${-window.innerWidth * 1.5}px) rotate(-20deg)`;
           card.style.opacity = "0";
           setTimeout(() => {
             currentIndex++;
             renderCards();
           }, 350);
         } else if (currentIndex > 0) {
-          // Swipe left → previous: snap back, then re-render at prev index
+          // Swipe right → previous: snap back, then re-render at prev index
+          clearVoteButtons();
           card.style.transform = "";
           card.style.opacity = "";
           setTimeout(() => {
@@ -267,8 +274,9 @@
       if (currentIndex >= memes.length) return;
       const topCard = stack.querySelector('.meme-card[data-index="0"]');
       if (!topCard) return;
+      clearVoteButtons();
       topCard.classList.add("fly-out");
-      topCard.style.transform = `translateX(${window.innerWidth * 1.5}px) rotate(20deg)`;
+      topCard.style.transform = `translateX(${-window.innerWidth * 1.5}px) rotate(-20deg)`;
       topCard.style.opacity = "0";
       setTimeout(() => {
         currentIndex++;
@@ -276,6 +284,7 @@
       }, 350);
     } else {
       if (currentIndex <= 0) return;
+      clearVoteButtons();
       currentIndex--;
       renderCards();
     }
