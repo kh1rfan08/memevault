@@ -22,7 +22,6 @@ const SUBREDDITS = [
   "blursedimages",
   "me_irl",
   "whenthe",
-  "antimeme",
   "surrealmemes",
   "programmerhumor",
   "memeeconomy",
